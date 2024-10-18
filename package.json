@@ -1,0 +1,25 @@
+{
+  "name": "firfox-scrapper-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "joi": "^17.13.3",
+    "js-levenshtein": "^1.1.6",
+    "minimist": "^1.2.8",
+    "mongoose": "^8.4.5",
+    "mysql": "^2.18.1"
+  }
+}
