@@ -4,7 +4,7 @@ const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "Mis@Gtech24",
-  database: "g-tech",
+  database: "gtech.c5i6oqis88l0.eu-central-1.rds.amazonaws.com",
   port: 3306,
 });
 
