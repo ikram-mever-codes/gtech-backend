@@ -1,11 +1,11 @@
 const mysql = require("mysql");
 
 const db = mysql.createConnection({
-  host: "gtech.c5i6oqis88l0.eu-central-1.rds.amazonaws.com", // Remote MySQL host
-  user: "root", // MySQL user
-  password: "Mis@Gtech24", // MySQL password
-  database: "g-tech", // Database name
-  port: 3306, // MySQL port (default is 3306)
+  host: "gtech.c5i6oqis88l0.eu-central-1.rds.amazonaws.com",
+  user: "root",
+  password: "Mis@Gtech24",
+  database: "g-tech",
+  port: 3306,
 });
 
 db.connect((err) => {
