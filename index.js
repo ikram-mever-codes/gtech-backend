@@ -9,7 +9,7 @@ require("dotenv").config();
 const app = express();
 
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173"],
   credentials: true,
   "Access-Control-Allow-Origin": "http://localhost:5173",
 };
@@ -199,6 +199,7 @@ app.put("/data/update", async (req, res) => {
     res.status(500).json({ message: "Server error." });
   }
 });
+
 app.post("/products/add", async (req, res) => {
   const { products } = req.body;
 
@@ -212,7 +213,7 @@ app.post("/products/add", async (req, res) => {
       db.query(usedEansQuery, (err, result) => {
         if (err) {
           console.error("Error fetching used EANs:", err);
-          return reject(err);
+          return reject({ message: "Failed to retrieve EAN data" });
         }
         resolve(result);
       });
@@ -237,7 +238,8 @@ app.post("/products/add", async (req, res) => {
           .json({ message: `EAN ${titemData.ean} is already in use` });
       }
 
-      const titemsQuery = `INSERT INTO titems (parent_id, itemID_DE, parent_no_de, supp_cat, ean, tariff_code, taric_id, weight, width, height, length, item_name_cn, item_name, RMB_Price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      const titemsQuery = `INSERT INTO titems (parent_id, itemID_DE, parent_no_de, supp_cat, ean, tariff_code, taric_id, weight, width, height, length, item_name_cn, item_name, RMB_Price, is_new) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
       const titemsValues = [
         titemData.parent_id,
         titemData.itemID_DE,
@@ -250,9 +252,28 @@ app.post("/products/add", async (req, res) => {
         titemData.width,
         titemData.height,
         titemData.length,
-        titemData.item_name_cn,
-        titemData.item_name,
+        `${titemData.item_name_cn || "CN"} ${
+          variationValuesData.value_de || ""
+        }${
+          variationValuesData.value_de_2
+            ? "-" + variationValuesData.value_de_2
+            : ""
+        }${
+          variationValuesData.value_de_3
+            ? "-" + variationValuesData.value_de_3
+            : ""
+        }`,
+        `${titemData.item_name || "EN"} ${variationValuesData.value_de || ""}${
+          variationValuesData.value_de_2
+            ? "-" + variationValuesData.value_de_2
+            : ""
+        }${
+          variationValuesData.value_de_3
+            ? "-" + variationValuesData.value_de_3
+            : ""
+        }`,
         titemData.RMB_Price,
+        true,
       ];
 
       let insertedItemId;
@@ -260,14 +281,15 @@ app.post("/products/add", async (req, res) => {
         db.query(titemsQuery, titemsValues, (err, titemsResult) => {
           if (err) {
             console.error("Error inserting titem:", err);
-            return reject(err);
+            return reject({
+              message: `Failed to add item ${titemData.item_name}`,
+            });
           }
           insertedItemId = titemsResult.insertId;
           resolve(titemsResult);
         });
       });
 
-      // Insert into supplier_items
       if (!supplierItemData || !supplierItemData.supplier_id) {
         return res.status(400).json({ message: "Missing supplier item data" });
       }
@@ -282,7 +304,9 @@ app.post("/products/add", async (req, res) => {
         db.query(supplierQuery, supplierValues, (err, supplierResult) => {
           if (err) {
             console.error("Error inserting supplier item:", err);
-            return reject(err);
+            return reject({
+              message: `Failed to add supplier data for item ${titemData.item_name}`,
+            });
           }
           resolve(supplierResult);
         });
@@ -309,9 +333,55 @@ app.post("/products/add", async (req, res) => {
         db.query(variationQuery, variationValues, (err, variationResult) => {
           if (err) {
             console.error("Error inserting variation value:", err);
-            return reject(err);
+            return reject({
+              message: `Failed to add variation data for item ${titemData.item_name}`,
+            });
           }
           resolve(variationResult);
+        });
+      });
+
+      const warehouseQuery = `INSERT INTO warehouse_items (item_id, ItemID_DE, ean, item_no_de, item_name_de, item_name_en, is_no_auto_order, is_active, price_eur, msq, buffer, is_stock_item, is_SnSI, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
+      const warehouseValues = [
+        insertedItemId,
+        titemData.itemID_DE,
+        titemData.ean,
+        variationValuesData.item_no_de,
+        `${titemData.item_name_de} ${variationValuesData.value_de || ""}${
+          variationValuesData.value_de_2
+            ? "-" + variationValuesData.value_de_2
+            : ""
+        }${
+          variationValuesData.value_de_3
+            ? "-" + variationValuesData.value_de_3
+            : ""
+        }`,
+        `${titemData.item_name} ${variationValuesData.value_de || ""}${
+          variationValuesData.value_de_2
+            ? "-" + variationValuesData.value_de_2
+            : ""
+        }${
+          variationValuesData.value_de_3
+            ? "-" + variationValuesData.value_de_3
+            : ""
+        }`,
+        "N",
+        "Y",
+        0.0,
+        0.0,
+        0,
+        "Y",
+        "Y",
+      ];
+      await new Promise((resolve, reject) => {
+        db.query(warehouseQuery, warehouseValues, (err, warehouseResult) => {
+          if (err) {
+            console.error("Error inserting into warehouse_items:", err);
+            return reject({
+              message: `Failed to add warehouse data for item ${titemData.item_name}`,
+            });
+          }
+          resolve(warehouseResult);
         });
       });
 
@@ -320,7 +390,7 @@ app.post("/products/add", async (req, res) => {
         db.query(updateEanQuery, [titemData.ean], (err, updateResult) => {
           if (err) {
             console.error("Error updating EAN:", err);
-            return reject(err);
+            return reject({ message: `Failed to update EAN ${titemData.ean}` });
           }
           resolve(updateResult);
         });
@@ -330,7 +400,7 @@ app.post("/products/add", async (req, res) => {
     res.status(200).json({ message: "Products added successfully" });
   } catch (error) {
     console.error("Error processing products:", error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: error.message || "Server error" });
   }
 });
 

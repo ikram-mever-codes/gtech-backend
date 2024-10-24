@@ -1,18 +1,20 @@
 const mysql = require("mysql");
 
-const db = mysql.createConnection({
+const connection = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "Mis@Gtech24",
-  database: "gtech.c5i6oqis88l0.eu-central-1.rds.amazonaws.com",
+  password: "",
+  database: "g-tech",
   port: 3306,
+  connectTimeout: 60000,
 });
 
-db.connect((err) => {
+connection.connect((err) => {
   if (err) {
     console.error("Error connecting to MySQL:", err);
     return;
   }
+
   console.log("Connected to MySQL");
 
   const createTableQuery = `
@@ -20,10 +22,10 @@ db.connect((err) => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL UNIQUE,
       value DECIMAL(10, 2) NOT NULL
-    );  
+    );
   `;
 
-  db.query(createTableQuery, (err, results) => {
+  connection.query(createTableQuery, (err, results) => {
     if (err) {
       console.error("Error creating table:", err);
       return;
@@ -32,4 +34,4 @@ db.connect((err) => {
   });
 });
 
-module.exports = db;
+module.exports = connection;
