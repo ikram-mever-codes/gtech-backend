@@ -9,7 +9,7 @@ require("dotenv").config();
 const app = express();
 
 const corsOptions = {
-  origin: ["http://localhost:5173"],
+  origin: ["https://gtech-frontend-nine.vercel.app", "http://localhost:5173"],
   credentials: true,
   "Access-Control-Allow-Origin": "http://localhost:5173",
 };
@@ -238,7 +238,7 @@ app.post("/products/add", async (req, res) => {
           .json({ message: `EAN ${titemData.ean} is already in use` });
       }
 
-      const titemsQuery = `INSERT INTO titems (parent_id, itemID_DE, parent_no_de, supp_cat, ean, tariff_code, taric_id, weight, width, height, length, item_name_cn, item_name, RMB_Price, is_new) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      const titemsQuery = `INSERT INTO titems (parent_id, itemID_DE, parent_no_de, supp_cat, ean, tariff_code, taric_id, weight, width, height, length, item_name_cn, item_name, RMB_Price, is_new, is_npr, npr_remark, ISBN, many_components, effort_rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       const titemsValues = [
         titemData.parent_id,
@@ -273,7 +273,12 @@ app.post("/products/add", async (req, res) => {
             : ""
         }`,
         titemData.RMB_Price,
-        true,
+        "Y",
+        "Y",
+        "Bulk NewItem Creation",
+        1,
+        1,
+        3,
       ];
 
       let insertedItemId;
